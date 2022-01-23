@@ -1,0 +1,41 @@
+body {
+  font-family: "Open Sans", sans-serif;
+}
+h1 {
+  text-align: center;
+}
+#container {
+  display: flex;
+  background-color: #003049;
+  width: 1200px;
+  height: 500px;
+  margin: 0 auto;
+  border: 5px solid #003049;
+  flex-direction: column;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+main {
+  width: 80%;
+  margin: 0 auto;
+  border: 5px solid black;
+  height: 500px;
+  display: flex;
+}
+
+main .sidebar {
+  background-color: #960e96;
+  flex: 1 250px;
+}
+main .maincontent {
+  background-color: #33d41e;
+  flex: 1 400px;
+}
+
+button {
+  width: 100px;
+  height: 100px;
+  font-size: 15px;
+  margin: 30px;
+}
