@@ -4,7 +4,8 @@ const path = require('path');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override')
 const Product = require('./models/product');
-const { findByIdAndDelete } = require('./models/product');
+const AppError = require('./views/AppError');
+
 
 mongoose.connect('mongodb://localhost:27017/farmStand' , {useNewUrlParser: true , useUnifiedTopology:true})
 .then(() => {
@@ -34,31 +35,54 @@ app.get('/products' , async (req , res) => {
 const categories = ['fruit' , 'vegetable' , 'dairy' , 'fungi'];
 
 app.get('/products/new' , (req , res) => {
+    // in this case err should be conditional / ex: only admins can add prod
+    //throw new AppError('NOT ALLOWED' , 401)
     res.render('products/new' , {categories})
 })
 
-app.post('/products' , async (req , res) => {
-    const newProduct = new Product(req.body);
-    await newProduct.save();
-    res.redirect(`/products/${newProduct._id}`)
+app.post('/products' , async (req , res , next) => {
+    try {
+        const newProduct = new Product(req.body);
+        await newProduct.save();
+        res.redirect(`/products/${newProduct._id}`)      
+    } catch (error) {
+       next(error) 
+    }
 })
 
-app.get('/products/:id' , async (req , res) => {
-    const {id} = req.params;
-    const product = await Product.findById(id)
-    res.render('products/show' , {product})
-})
+// it is used to replace try/ catch and not to be required to do it for evry route
+// now you just wrap it 
+function wrapAsync(fn) {
+    return function(req , res , next){
+        fn(req , res , next).catch(e => next(e))
+    }
+}
 
-app.get('/products/:id/edit' , async (req , res) => {
-    const {id} = req.params;
-    const product = await Product.findById(id)  
-    res.render('products/edit' , {product , categories})
+// ex just for "show page"
+app.get('/products/:id' , wrapAsync(async (req , res , next) => {
+        const {id} = req.params;
+        const product = await Product.findById(id);
+        res.render('products/show' , {product})      
+}))
+
+app.get('/products/:id/edit' , async (req , res , next) => {
+    try {
+        const {id} = req.params;
+        const product = await Product.findById(id);
+        res.render('products/edit' , {product , categories})
+    } catch (error) {   
+        return  next( new AppError('product not found' , 404) );
+    }
 }) 
 
-app.put('/products/:id' , async(req , res) => {
-    const {id} = req.params;
-    const product = await Product.findByIdAndUpdate(id , req.body , {runValidators: true , new:true})
-    res.redirect(`/products/${product._id}`)
+app.put('/products/:id' , async(req , res , next) => {
+    try {
+        const {id} = req.params;
+        const product = await Product.findByIdAndUpdate(id , req.body , {runValidators: true , new:true})
+        res.redirect(`/products/${product._id}`)
+    } catch (error) {
+        next(error)
+    }
 })
 app.delete('/products/:id' , async(req, res) => {
     const {id} = req.params;
@@ -66,7 +90,23 @@ app.delete('/products/:id' , async(req, res) => {
     res.redirect('/products');  
 })
 
+app.get('/' , (req, res) => {
+    res.render('home.ejs')
+})
 
+// ERROR HANDLING HAS TO PE AT THE END OF EXPRESS APP / AFTER ROUTERS
+
+//mongoose error handling
+app.use((err , req , res , next) => {
+    console.log(err.name);
+    next(err);
+})
+
+// error handling 
+app.use((err, req , res , next) => {
+    const {status = 500 , message ="Some error here"} = err;
+    res.status(status).send(message)
+})
 
 
 app.listen(3000 , () => {
