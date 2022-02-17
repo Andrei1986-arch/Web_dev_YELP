@@ -12,3 +12,11 @@ module.exports.campgroundSchema = Joi.object({
     }).required()
 });
 
+// in order to validate the form we have to require the review
+// as well  as any component forming the review in pur schema
+module.exports.reviewSchema = Joi.object({
+    review: Joi.object({
+        rating: Joi.number().required().min(1).max(5),
+        body: Joi.string().required()
+    }).required()
+})
