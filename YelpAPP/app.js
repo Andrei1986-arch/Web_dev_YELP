@@ -1,3 +1,6 @@
+if(process.env.NODE_ENV !== "production") {
+    require('dotenv').config()
+}
 
 const express = require('express');
 const app = express();
@@ -10,7 +13,7 @@ const session = require('express-session')
 const flash = require('connect-flash')
 //const {campgroundSchema , reviewSchema} = require('./schemas.js')
 const ExpressError = require('./utils/expressError')
-const catchAsync = require('./utils/catchAsync')
+//const catchAsync = require('./utils/catchAsync')
 //const Review = require('./models/review')
 const passport = require('passport');
 const LocalStrategy = require('passport-local')
@@ -64,7 +67,9 @@ passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser()) // acces in that session
 passport.deserializeUser(User.deserializeUser()) // gets the user out of that session
 
+// give access to user if logged / error 
 app.use((req , res , next) => {
+    res.locals.currentUser = req.user;
     res.locals.success = req.flash("success");
     res.locals.error = req.flash("error")
     next()
@@ -74,17 +79,12 @@ app.use('/campgrounds' , campgroundsRoutes);
 app.use('/campgrounds/:id/reviews' , reviewsRoutes);
 app.use('/' , userRoutes);
 
-app.get('/fakeUser' , async(req , res) => {
-    const user = new User({email:'andrei@gmail.com' , username:'Andrei' })
-    const newUser = await User.register(user , 'what')
-    res.send(newUser);
-})
-
 app.get('/' , (req , res) => {
     res.render('home')
 })
 
 app.all('*' , (req , res , next) => {
+    
     next(new ExpressError('Page not found' , 404))
 })
 
