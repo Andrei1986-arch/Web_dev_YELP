@@ -1,4 +1,7 @@
 const Campground = require('../models/campground');
+const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding')
+const mapBoxToken = process.env.MAPBOX_TOKEN;
+const geocoder =  mbxGeocoding({ accessToken: mapBoxToken })
 const {cloudinary} = require('../cloudinary')
 
 module.exports.index = async (req , res) => {
@@ -11,14 +14,19 @@ module.exports.renderNewForm = (req , res) => {
 }
 
 module.exports.createCampground =   async(req , res , next) => {
+    const geoData = await geocoder.forwardGeocode ({
+        query: req.body.campground.location,
+        limit:1
+    }).send()
     const campground = new Campground(req.body.campground);
+    campground.geometry = geoData.body.features[0].geometry;
     campground.images = req.files.map(f => ({url: f.path , filename: f.filename}))
     campground.author = req.user._id
+    console.log(campground.geometry);
     await campground.save();
-    console.log("load to cloud successfully");
     req.flash('success' , 'Successfully made a new campgrounds!')
     res.redirect(`/campgrounds/${campground._id}`)
-}
+ }
 
 //!!!!!! populate -> if we do not populate we are looking at ID's only --> from findById(id)
 // with populate we add reviews and author or whatever we want have access to
